@@ -1,103 +1,61 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Unit PS - Input Data</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-      rel="stylesheet"
-    />
-    <style>
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background: linear-gradient(to right, #0f172a, #1e293b);
-      }
-    </style>
+    <title>Penjaga - Input Sewa</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   </head>
-  <body class="text-white min-h-screen p-4">
-    <div class="max-w-lg mx-auto bg-gray-900 p-6 rounded-2xl shadow-lg mt-8">
-      <h2 class="text-2xl font-bold mb-4">Input Sesi Main</h2>
-      <form id="formInput" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium">Pilih Durasi Main</label>
-          <select
-            id="durasi"
-            class="mt-1 w-full p-2 rounded bg-gray-800 border border-gray-700"
-          >
-            <option value="1">1 Jam</option>
-            <option value="2">2 Jam</option>
-            <option value="3">3 Jam</option>
-            <option value="4">4 Jam</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium">Pilih Paket</label>
-          <select
-            id="paket"
-            class="mt-1 w-full p-2 rounded bg-gray-800 border border-gray-700"
-          >
-            <option value="">-- Tidak ada --</option>
-            <option value="Paket Hemat">Paket Hemat</option>
-            <option value="Paket Main Sore">Paket Main Sore</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium"
-            >Tambahan Makanan / Minuman</label
-          >
-          <input
-            type="text"
-            id="tambahan"
-            placeholder="Contoh: Teh Botol + Mie Instan"
-            class="mt-1 w-full p-2 rounded bg-gray-800 border border-gray-700"
-          />
-        </div>
-        <button
-          type="submit"
-          class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-xl font-semibold"
-        >
-          Kirim Data ke Admin
-        </button>
-      </form>
-      <div class="mt-4 text-center">
-        <button
-          onclick="logout()"
-          class="text-sm text-gray-400 hover:underline"
-        >
-          Logout
-        </button>
-      </div>
-    </div>
+  <body>
+    <h2>Input Data Sewa</h2>
+    <form onsubmit="kirim(event)">
+      <label>Unit: <input id="unit" required /></label><br />
+      <label>Durasi (jam): <input id="durasi" type="number" required /></label
+      ><br />
+      <label>Paket: <input id="paket" /></label><br />
+      <label>Tambahan: <input id="tambahan" /></label><br />
+      <label>Total (Rp): <input id="total" type="number" required /></label
+      ><br />
+      <button type="submit">Kirim</button>
+    </form>
 
     <script>
-      // Cek login dulu
-      if (
-        localStorage.getItem("userLoggedIn") !== "true" ||
-        localStorage.getItem("role") !== "penjaga"
-      ) {
-        alert("Akses ditolak. Silakan login sebagai penjaga.");
-        window.location.href = "index.html";
-      }
+      const firebaseConfig = {
+        apiKey: "AIzaSyC91ULJ0wu9p4tD8HUif4Qo5VY876gZwwg",
+        authDomain: "ps44-5b52f.firebaseapp.com",
+        databaseURL:
+          "https://ps44-5b52f-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "ps44-5b52f",
+        storageBucket: "ps44-5b52f.firebasestorage.app",
+        messagingSenderId: "1080554274263",
+        appId: "1:1080554274263:web:73fbda9d225f3e45319f92",
+        measurementId: "G-T04DDGMFT3",
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
 
-      const form = document.getElementById("formInput");
-      form.addEventListener("submit", (e) => {
+      function kirim(e) {
         e.preventDefault();
-        const durasi = document.getElementById("durasi").value;
-        const paket = document.getElementById("paket").value;
-        const tambahan = document.getElementById("tambahan").value;
-
-        // Simulasi kirim ke admin
-        alert(
-          `Terkirim:\nDurasi: ${durasi} jam\nPaket: ${paket}\nTambahan: ${tambahan}`
-        );
-
-        // Di versi nyata, gunakan fetch() untuk kirim data ke backend
-      });
-
-      function logout() {
-        localStorage.clear();
-        window.location.href = "index.html";
+        const now = new Date();
+        const jam =
+          now.getHours().toString().padStart(2, "0") +
+          ":" +
+          now.getMinutes().toString().padStart(2, "0");
+        const data = {
+          jam: jam,
+          unit: unit.value,
+          durasi: parseInt(durasi.value),
+          startTime: Date.now(),
+          paket: paket.value,
+          tambahan: tambahan.value,
+          total: parseInt(total.value),
+        };
+        const id = db.ref().child("berjalan").push().key;
+        db.ref("berjalan/" + id)
+          .set(data)
+          .then(() => {
+            alert("Berhasil dikirim!");
+            document.querySelector("form").reset();
+          });
       }
     </script>
   </body>
