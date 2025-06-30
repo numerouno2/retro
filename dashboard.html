@@ -8,6 +8,8 @@
       href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
       rel="stylesheet"
     />
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
       body {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -36,12 +38,6 @@
         <h2 class="text-xl font-semibold mb-2">Ringkasan Hari Ini</h2>
         <p>Total Selesai: <span id="totalUnit">0</span></p>
         <p>Total Pendapatan: Rp <span id="totalPendapatan">0</span></p>
-        <button
-          onclick="exportCSV()"
-          class="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-xl text-sm"
-        >
-          Download CSV
-        </button>
       </div>
 
       <!-- Sedang Berjalan -->
@@ -81,15 +77,23 @@
           <tbody id="selesaiBody" class="text-gray-100"></tbody>
         </table>
       </div>
-
-      <!-- Laporan Bulanan -->
-      <div class="bg-gray-900 p-4 rounded-xl">
-        <h2 class="text-xl font-semibold mb-4">Laporan Bulanan</h2>
-        <div id="laporanBulanan" class="space-y-4 text-sm"></div>
-      </div>
     </div>
 
     <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyC91ULJ0wu9p4tD8HUif4Qo5VY876gZwwg",
+        authDomain: "ps44-5b52f.firebaseapp.com",
+        databaseURL:
+          "https://ps44-5b52f-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "ps44-5b52f",
+        storageBucket: "ps44-5b52f.firebasestorage.app",
+        messagingSenderId: "1080554274263",
+        appId: "1:1080554274263:web:73fbda9d225f3e45319f92",
+        measurementId: "G-T04DDGMFT3",
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+
       if (
         localStorage.getItem("userLoggedIn") !== "true" ||
         localStorage.getItem("role") !== "admin"
@@ -98,38 +102,7 @@
         window.location.href = "index.html";
       }
 
-      let dataBerjalan = JSON.parse(localStorage.getItem("dataBerjalan")) || [];
-      let dataSelesai = JSON.parse(localStorage.getItem("dataSelesai")) || [];
-
-      function simpanData() {
-        localStorage.setItem("dataBerjalan", JSON.stringify(dataBerjalan));
-        localStorage.setItem("dataSelesai", JSON.stringify(dataSelesai));
-      }
-
-      function cekTanggal() {
-        const hariIni = new Date().toISOString().slice(0, 10);
-        const tanggalTersimpan = localStorage.getItem("tanggalData") || hariIni;
-
-        if (hariIni !== tanggalTersimpan) {
-          const laporan = JSON.parse(localStorage.getItem("laporan")) || [];
-          laporan.push({
-            tanggal: tanggalTersimpan,
-            transaksi: dataSelesai,
-            totalPendapatan: dataSelesai.reduce(
-              (sum, item) => sum + item.total,
-              0
-            ),
-          });
-          localStorage.setItem("laporan", JSON.stringify(laporan));
-
-          dataSelesai = [];
-          dataBerjalan = [];
-          localStorage.setItem("tanggalData", hariIni);
-          simpanData();
-        }
-      }
-
-      function renderTabel() {
+      function renderTabel(dataBerjalan, dataSelesai) {
         const berjalanBody = document.getElementById("berjalanBody");
         const selesaiBody = document.getElementById("selesaiBody");
         berjalanBody.innerHTML = "";
@@ -146,7 +119,9 @@
           <td>${item.paket || "-"}</td>
           <td>${item.tambahan || "-"}</td>
           <td>Rp ${item.total.toLocaleString()}</td>
-          <td><button class="text-green-400 hover:underline" onclick="selesai(${index})">Done</button></td>
+          <td><button class="text-green-400 hover:underline" onclick="selesai('${
+            item.id
+          }')">Done</button></td>
         `;
           berjalanBody.appendChild(row);
           updateCountdown(countdownId, item);
@@ -194,40 +169,11 @@
         }, 1000);
       }
 
-      function selesai(index) {
-        const item = dataBerjalan.splice(index, 1)[0];
-        dataSelesai.push(item);
-        simpanData();
-        renderTabel();
-      }
-
-      function exportCSV() {
-        let csv = "Jam,Unit,Durasi,Paket,Tambahan,Total\n";
-        dataSelesai.forEach((item) => {
-          csv += `${item.jam},${item.unit},${item.durasi} jam,${item.paket},${item.tambahan},${item.total}\n`;
-        });
-        const blob = new Blob([csv], { type: "text/csv" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `histori-${new Date().toISOString().slice(0, 10)}.csv`;
-        link.click();
-      }
-
-      function renderLaporanBulanan() {
-        const laporan = JSON.parse(localStorage.getItem("laporan")) || [];
-        const container = document.getElementById("laporanBulanan");
-        container.innerHTML = "";
-
-        laporan.forEach((lap) => {
-          const div = document.createElement("div");
-          div.innerHTML = `
-          <div class="border-b border-gray-700 pb-2">
-            <h3 class="font-bold text-white">${lap.tanggal}</h3>
-            <p>Total Pendapatan: Rp ${lap.totalPendapatan.toLocaleString()}</p>
-            <p>Total Transaksi: ${lap.transaksi.length}</p>
-          </div>
-        `;
-          container.appendChild(div);
+      function selesai(id) {
+        db.ref(`berjalan/${id}`).once("value", (snapshot) => {
+          const item = snapshot.val();
+          db.ref(`selesai/${id}`).set(item);
+          db.ref(`berjalan/${id}`).remove();
         });
       }
 
@@ -236,9 +182,23 @@
         window.location.href = "index.html";
       }
 
-      cekTanggal();
-      renderTabel();
-      renderLaporanBulanan();
+      // Realtime listener
+      db.ref("berjalan").on("value", (berjalanSnap) => {
+        db.ref("selesai").once("value", (selesaiSnap) => {
+          const dataBerjalan = [];
+          const dataSelesai = [];
+
+          berjalanSnap.forEach((child) => {
+            dataBerjalan.push({ id: child.key, ...child.val() });
+          });
+
+          selesaiSnap.forEach((child) => {
+            dataSelesai.push(child.val());
+          });
+
+          renderTabel(dataBerjalan, dataSelesai);
+        });
+      });
     </script>
   </body>
 </html>
