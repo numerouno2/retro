@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Admin - Rental PS</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(to right, #0f172a, #1e293b);
+      }
+      .countdown {
+        font-weight: bold;
+        color: #38bdf8;
+      }
+    </style>
+  </head>
+  <body class="text-white min-h-screen p-4">
+    <div class="max-w-6xl mx-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">Dashboard Admin</h1>
+        <button
+          onclick="logout()"
+          class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-xl text-sm font-semibold"
+        >
+          Logout
+        </button>
+      </div>
+
+      <!-- Ringkasan -->
+      <div class="bg-gray-900 p-4 rounded-xl mb-6">
+        <h2 class="text-xl font-semibold mb-2">Ringkasan Hari Ini</h2>
+        <p>Total Selesai: <span id="totalUnit">0</span></p>
+        <p>Total Pendapatan: Rp <span id="totalPendapatan">0</span></p>
+        <button
+          onclick="exportCSV()"
+          class="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-xl text-sm"
+        >
+          Download CSV
+        </button>
+      </div>
+
+      <!-- Sedang Berjalan -->
+      <div class="bg-gray-900 p-4 rounded-xl mb-6">
+        <h2 class="text-xl font-semibold mb-4">Sedang Berjalan</h2>
+        <table class="w-full text-sm">
+          <thead class="text-left text-gray-300 border-b border-gray-700">
+            <tr>
+              <th>Jam</th>
+              <th>Unit</th>
+              <th>Durasi</th>
+              <th>Countdown</th>
+              <th>Paket</th>
+              <th>Tambahan</th>
+              <th>Total</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="berjalanBody" class="text-gray-100"></tbody>
+        </table>
+      </div>
+
+      <!-- Histori Selesai -->
+      <div class="bg-gray-900 p-4 rounded-xl mb-6">
+        <h2 class="text-xl font-semibold mb-4">Histori Selesai</h2>
+        <table class="w-full text-sm">
+          <thead class="text-left text-gray-300 border-b border-gray-700">
+            <tr>
+              <th>Jam</th>
+              <th>Unit</th>
+              <th>Durasi</th>
+              <th>Paket</th>
+              <th>Tambahan</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody id="selesaiBody" class="text-gray-100"></tbody>
+        </table>
+      </div>
+
+      <!-- Laporan Bulanan -->
+      <div class="bg-gray-900 p-4 rounded-xl">
+        <h2 class="text-xl font-semibold mb-4">Laporan Bulanan</h2>
+        <div id="laporanBulanan" class="space-y-4 text-sm"></div>
+      </div>
+    </div>
+
+    <script>
+      if (
+        localStorage.getItem("userLoggedIn") !== "true" ||
+        localStorage.getItem("role") !== "admin"
+      ) {
+        alert("Akses ditolak. Halaman ini khusus untuk admin.");
+        window.location.href = "index.html";
+      }
+
+      let dataBerjalan = JSON.parse(localStorage.getItem("dataBerjalan")) || [];
+      let dataSelesai = JSON.parse(localStorage.getItem("dataSelesai")) || [];
+
+      function simpanData() {
+        localStorage.setItem("dataBerjalan", JSON.stringify(dataBerjalan));
+        localStorage.setItem("dataSelesai", JSON.stringify(dataSelesai));
+      }
+
+      function cekTanggal() {
+        const hariIni = new Date().toISOString().slice(0, 10);
+        const tanggalTersimpan = localStorage.getItem("tanggalData") || hariIni;
+
+        if (hariIni !== tanggalTersimpan) {
+          const laporan = JSON.parse(localStorage.getItem("laporan")) || [];
+          laporan.push({
+            tanggal: tanggalTersimpan,
+            transaksi: dataSelesai,
+            totalPendapatan: dataSelesai.reduce(
+              (sum, item) => sum + item.total,
+              0
+            ),
+          });
+          localStorage.setItem("laporan", JSON.stringify(laporan));
+
+          dataSelesai = [];
+          dataBerjalan = [];
+          localStorage.setItem("tanggalData", hariIni);
+          simpanData();
+        }
+      }
+
+      function renderTabel() {
+        const berjalanBody = document.getElementById("berjalanBody");
+        const selesaiBody = document.getElementById("selesaiBody");
+        berjalanBody.innerHTML = "";
+        selesaiBody.innerHTML = "";
+
+        dataBerjalan.forEach((item, index) => {
+          const row = document.createElement("tr");
+          const countdownId = `countdown-${index}`;
+          row.innerHTML = `
+          <td>${item.jam}</td>
+          <td>${item.unit}</td>
+          <td>${item.durasi} jam</td>
+          <td class="countdown" id="${countdownId}">--:--</td>
+          <td>${item.paket || "-"}</td>
+          <td>${item.tambahan || "-"}</td>
+          <td>Rp ${item.total.toLocaleString()}</td>
+          <td><button class="text-green-400 hover:underline" onclick="selesai(${index})">Done</button></td>
+        `;
+          berjalanBody.appendChild(row);
+          updateCountdown(countdownId, item);
+        });
+
+        dataSelesai.forEach((item) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+          <td>${item.jam}</td>
+          <td>${item.unit}</td>
+          <td>${item.durasi} jam</td>
+          <td>${item.paket || "-"}</td>
+          <td>${item.tambahan || "-"}</td>
+          <td>Rp ${item.total.toLocaleString()}</td>
+        `;
+          selesaiBody.appendChild(row);
+        });
+
+        document.getElementById("totalUnit").textContent = dataSelesai.length;
+        document.getElementById("totalPendapatan").textContent = dataSelesai
+          .reduce((sum, item) => sum + item.total, 0)
+          .toLocaleString();
+      }
+
+      function updateCountdown(id, item) {
+        const countdownEl = document.getElementById(id);
+        const endTime = item.startTime + item.durasi * 60 * 60 * 1000;
+        const interval = setInterval(() => {
+          const now = Date.now();
+          const remaining = endTime - now;
+          if (remaining <= 0) {
+            countdownEl.textContent = "Selesai";
+            countdownEl.classList.add("text-red-400");
+            clearInterval(interval);
+          } else {
+            const hrs = Math.floor(remaining / (1000 * 60 * 60));
+            const mins = Math.floor(
+              (remaining % (1000 * 60 * 60)) / (1000 * 60)
+            );
+            const secs = Math.floor((remaining % (1000 * 60)) / 1000);
+            countdownEl.textContent = `${hrs.toString().padStart(2, "0")}:${mins
+              .toString()
+              .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+          }
+        }, 1000);
+      }
+
+      function selesai(index) {
+        const item = dataBerjalan.splice(index, 1)[0];
+        dataSelesai.push(item);
+        simpanData();
+        renderTabel();
+      }
+
+      function exportCSV() {
+        let csv = "Jam,Unit,Durasi,Paket,Tambahan,Total\n";
+        dataSelesai.forEach((item) => {
+          csv += `${item.jam},${item.unit},${item.durasi} jam,${item.paket},${item.tambahan},${item.total}\n`;
+        });
+        const blob = new Blob([csv], { type: "text/csv" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `histori-${new Date().toISOString().slice(0, 10)}.csv`;
+        link.click();
+      }
+
+      function renderLaporanBulanan() {
+        const laporan = JSON.parse(localStorage.getItem("laporan")) || [];
+        const container = document.getElementById("laporanBulanan");
+        container.innerHTML = "";
+
+        laporan.forEach((lap) => {
+          const div = document.createElement("div");
+          div.innerHTML = `
+          <div class="border-b border-gray-700 pb-2">
+            <h3 class="font-bold text-white">${lap.tanggal}</h3>
+            <p>Total Pendapatan: Rp ${lap.totalPendapatan.toLocaleString()}</p>
+            <p>Total Transaksi: ${lap.transaksi.length}</p>
+          </div>
+        `;
+          container.appendChild(div);
+        });
+      }
+
+      function logout() {
+        localStorage.clear();
+        window.location.href = "index.html";
+      }
+
+      cekTanggal();
+      renderTabel();
+      renderLaporanBulanan();
+    </script>
+  </body>
+</html>

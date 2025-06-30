@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Rental PS</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <script
+      src="https://unpkg.com/html5-qrcode"
+      type="text/javascript"
+    ></script>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(to right, #0f172a, #1e293b);
+      }
+    </style>
+  </head>
+  <body class="flex items-center justify-center min-h-screen text-white">
+    <div class="bg-gray-900 p-8 rounded-2xl shadow-xl w-full max-w-sm">
+      <h1 class="text-2xl font-bold mb-6 text-center">Rental PS - Login</h1>
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label for="username" class="block text-sm font-medium"
+            >Username</label
+          >
+          <input
+            type="text"
+            id="username"
+            name="username"
+            required
+            class="mt-1 w-full p-2 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label for="password" class="block text-sm font-medium"
+            >Password</label
+          >
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            class="mt-1 w-full p-2 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" id="remember" name="remember" class="mr-2" />
+          <label for="remember" class="text-sm">Ingat saya</label>
+        </div>
+        <button
+          type="submit"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-xl transition duration-200"
+        >
+          Masuk
+        </button>
+      </form>
+
+      <div class="mt-6 text-center">
+        <p class="text-sm text-gray-400">atau login dengan scan QR</p>
+        <div
+          id="qr-reader"
+          class="mt-4 w-full mx-auto rounded-lg overflow-hidden bg-gray-800"
+        ></div>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById("loginForm");
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const username = form.username.value.trim();
+        const password = form.password.value.trim();
+
+        const credentials = [
+          {
+            username: "RetroA",
+            password: "AdminA",
+            role: "admin",
+            redirect: "dashboard.html",
+          },
+          {
+            username: "RetroPG",
+            password: "retro123",
+            role: "penjaga",
+            redirect: "unit.html",
+          },
+        ];
+
+        const matched = credentials.find(
+          (c) => c.username === username && c.password === password
+        );
+
+        if (matched) {
+          if (form.remember.checked) {
+            localStorage.setItem("userLoggedIn", "true");
+            localStorage.setItem("username", matched.username);
+            localStorage.setItem("role", matched.role);
+          }
+          alert("Login berhasil sebagai " + matched.username);
+          window.location.href = matched.redirect;
+        } else {
+          alert("Username atau password salah.");
+        }
+      });
+
+      // QR Scanner setup
+      const qrReader = new Html5Qrcode("qr-reader");
+      Html5Qrcode.getCameras()
+        .then((cameras) => {
+          if (cameras && cameras.length) {
+            qrReader.start(
+              cameras[0].id,
+              { fps: 10, qrbox: 200 },
+              (qrCodeMessage) => {
+                qrReader.stop();
+                if (localStorage.getItem("userLoggedIn") === "true") {
+                  window.location.href = qrCodeMessage;
+                } else {
+                  alert("Silakan login terlebih dahulu");
+                  window.location.href = "index.html";
+                }
+              },
+              (errorMessage) => {
+                // console.log(errorMessage);
+              }
+            );
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+        });
+    </script>
+  </body>
+</html>

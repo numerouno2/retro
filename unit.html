@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Unit PS - Input Data</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(to right, #0f172a, #1e293b);
+      }
+    </style>
+  </head>
+  <body class="text-white min-h-screen p-4">
+    <div class="max-w-lg mx-auto bg-gray-900 p-6 rounded-2xl shadow-lg mt-8">
+      <h2 class="text-2xl font-bold mb-4">Input Sesi Main</h2>
+      <form id="formInput" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium">Pilih Durasi Main</label>
+          <select
+            id="durasi"
+            class="mt-1 w-full p-2 rounded bg-gray-800 border border-gray-700"
+          >
+            <option value="1">1 Jam</option>
+            <option value="2">2 Jam</option>
+            <option value="3">3 Jam</option>
+            <option value="4">4 Jam</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Pilih Paket</label>
+          <select
+            id="paket"
+            class="mt-1 w-full p-2 rounded bg-gray-800 border border-gray-700"
+          >
+            <option value="">-- Tidak ada --</option>
+            <option value="Paket Hemat">Paket Hemat</option>
+            <option value="Paket Main Sore">Paket Main Sore</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium"
+            >Tambahan Makanan / Minuman</label
+          >
+          <input
+            type="text"
+            id="tambahan"
+            placeholder="Contoh: Teh Botol + Mie Instan"
+            class="mt-1 w-full p-2 rounded bg-gray-800 border border-gray-700"
+          />
+        </div>
+        <button
+          type="submit"
+          class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-xl font-semibold"
+        >
+          Kirim Data ke Admin
+        </button>
+      </form>
+      <div class="mt-4 text-center">
+        <button
+          onclick="logout()"
+          class="text-sm text-gray-400 hover:underline"
+        >
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <script>
+      // Cek login dulu
+      if (
+        localStorage.getItem("userLoggedIn") !== "true" ||
+        localStorage.getItem("role") !== "penjaga"
+      ) {
+        alert("Akses ditolak. Silakan login sebagai penjaga.");
+        window.location.href = "index.html";
+      }
+
+      const form = document.getElementById("formInput");
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const durasi = document.getElementById("durasi").value;
+        const paket = document.getElementById("paket").value;
+        const tambahan = document.getElementById("tambahan").value;
+
+        // Simulasi kirim ke admin
+        alert(
+          `Terkirim:\nDurasi: ${durasi} jam\nPaket: ${paket}\nTambahan: ${tambahan}`
+        );
+
+        // Di versi nyata, gunakan fetch() untuk kirim data ke backend
+      });
+
+      function logout() {
+        localStorage.clear();
+        window.location.href = "index.html";
+      }
+    </script>
+  </body>
+</html>
